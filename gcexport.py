@@ -183,7 +183,7 @@ def sanitize_filename(name, max_length=0):
     """
     # inspired by https://stackoverflow.com/a/698714/3686
     cleaned_filename = unicodedata.normalize('NFKD', name) if name else ''
-    stripped_filename = ''.join(c for c in cleaned_filename if c in VALID_FILENAME_CHARS).replace(' ', '_')
+    stripped_filename = ''.join(c for c in cleaned_filename if c in VALID_FILENAME_CHARS).replace(' ', '')
     return stripped_filename[:max_length] if max_length > 0 else stripped_filename
 
 
@@ -793,27 +793,30 @@ def export_data_file(activity_id, activity_details, args, file_time, append_desc
 
     # timestamp as prefix for filename
     if args.fileprefix > 0:
-        prefix = f'{date_time.replace("-", "").replace(":", "").replace(" ", "-")}-'
+        # prefix = f'{date_time.replace("-", "").replace(":", "").replace(" ", "-")}-'
+        prefix = f'{date_time.replace(":", "-").replace(" ", "_")}'
     else:
         prefix = ""
 
+    filename = os.path.join(directory, f'{prefix}_{activity_id}{append_desc}')
+
     original_basename = None
     if args.format == 'gpx':
-        data_filename = os.path.join(directory, f'{prefix}activity_{activity_id}{append_desc}.gpx')
+        data_filename = filename + '.gpx'
         download_url = f'{URL_GC_GPX_ACTIVITY}{activity_id}?full=true'
         file_mode = 'w'
     elif args.format == 'tcx':
-        data_filename = os.path.join(directory, f'{prefix}activity_{activity_id}{append_desc}.tcx')
+        data_filename = filename + '.tcx'
         download_url = f'{URL_GC_TCX_ACTIVITY}{activity_id}?full=true'
         file_mode = 'w'
     elif args.format == 'original':
-        data_filename = os.path.join(directory, f'{prefix}activity_{activity_id}{append_desc}.zip')
+        data_filename = filename + '.zip'
         # not all 'original' files are in FIT format, some are GPX or TCX...
-        original_basename = os.path.join(directory, f'{prefix}activity_{activity_id}{append_desc}')
+        original_basename = filename
         download_url = URL_GC_ORIGINAL_ACTIVITY + activity_id
         file_mode = 'wb'
     elif args.format == 'json':
-        data_filename = os.path.join(directory, f'{prefix}activity_{activity_id}{append_desc}.json')
+        data_filename = filename + '.json'
         file_mode = 'w'
     else:
         raise Exception('Unrecognized format.')
@@ -884,7 +887,8 @@ def export_data_file(activity_id, activity_details, args, file_time, append_desc
                         # note that 'new_name' should match 'original_basename' elsewhere in this script to
                         # avoid downloading the same files again
                         name_base = name_base.replace('_ACTIVITY', '')
-                        new_name = os.path.join(directory, f'{prefix}activity_{name_base}{append_desc}{name_ext}')
+                        filename = filename
+                        new_name = filename + name_ext
                         logging.debug('renaming %s to %s', unzipped_name, new_name)
                         os.rename(unzipped_name, new_name)
                         if file_time:
@@ -1208,7 +1212,8 @@ def process_activity_item(item, number_of_items, device_dict, activity_type_name
         print('0.000 km')
 
     if args.desc is not None:
-        append_desc = '_' + sanitize_filename(actvty['activityName'], args.desc)
+        filename = actvty['activityName'] + '_' + actvty['activityType']['typeKey']
+        append_desc = '_' + sanitize_filename(filename, args.desc)
     else:
         append_desc = ''
 
