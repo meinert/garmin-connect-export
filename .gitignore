@@ -5,7 +5,7 @@ __pycache__/
 .DS_Store
 extras/
 venv/
-*_garmin_connect_export/
+*garmin_connect_export/
 *.pyc
 *.log
 lint*.txt

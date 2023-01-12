@@ -1032,6 +1032,8 @@ def annotate_activity_list(activities, start, exclude_list):
             action = 's'
         elif str(activity['activityId']) in exclude_list:
             action = 'e'
+        elif int(activity['startTimeLocal'][:4]) < 2023:
+            action = 's'
         else:
             action = 'd'
 
@@ -1212,7 +1214,11 @@ def process_activity_item(item, number_of_items, device_dict, activity_type_name
         print('0.000 km')
 
     if args.desc is not None:
-        filename = actvty['activityName'] + '_' + actvty['activityType']['typeKey']
+        if actvty['activityName']:
+            filename = actvty['activityName'] + '_' + actvty['activityType']['typeKey']
+        else:
+            filename = actvty['activityType']['typeKey']
+
         append_desc = '_' + sanitize_filename(filename, args.desc)
     else:
         append_desc = ''
@@ -1296,14 +1302,7 @@ def main(argv):
 
     login_to_garmin_connect(args)
 
-    # Query the userstats (activities totals on the profile page). Needed for
-    # filtering and for downloading 'all' to know how many activities are available
-    userstats_json = fetch_userstats(args)
-
-    if args.count == 'all':
-        total_to_download = int(userstats_json['userMetrics'][0]['totalActivities'])
-    else:
-        total_to_download = int(args.count)
+    fetchActivities = True
 
     device_dict = {}
 
@@ -1317,7 +1316,22 @@ def main(argv):
         write_to_file(os.path.join(args.directory, 'event_types.properties'), activity_type_props, 'w')
     event_type_name = load_properties(event_type_props)
 
-    activities = fetch_activity_list(args, total_to_download)
+    if fetchActivities:
+        # Query the userstats (activities totals on the profile page). Needed for
+        # filtering and for downloading 'all' to know how many activities are available
+        userstats_json = fetch_userstats(args)
+
+        if args.count == 'all':
+            total_to_download = int(userstats_json['userMetrics'][0]['totalActivities'])
+        else:
+            total_to_download = int(args.count)
+
+        activities = fetch_activity_list(args, total_to_download)
+    else:
+        activitiesFile = os.path.join(args.directory, 'activities-2001-2216.json')
+        f = open(activitiesFile)
+        activities = json.load(f)
+
     action_list = annotate_activity_list(activities, args.start_activity_no, exclude_list)
 
     csv_filename = os.path.join(args.directory, 'activities.csv')
