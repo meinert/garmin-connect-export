@@ -3,6 +3,95 @@
 This changelog is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## 4.5.0 - 2024-12-18
+
+- changed: minimum Python version is now 3.10 (as the garth library requires 3.10)
+- changed: add filtering by human-readable activity type
+  ([Pull Request #114](https://github.com/pe-st/garmin-connect-export/pull/114) by @RReverser) 
+- fixed: login with OAuth token works again (#115)
+
+
+## 4.4.0 - 2024-07-12
+
+- changed: allow session directory to work on first go
+  ([Pull Request #108](https://github.com/pe-st/garmin-connect-export/pull/108) by @rjl6789) 
+- fixed: processing of old activities with missing activity name (#113) or elevation correction flag (#112)
+
+
+## 4.3.0 - 2024-03-02
+
+- added: option `-ss` to store OAuth token between sessions
+  ([Pull Request #99](https://github.com/pe-st/garmin-connect-export/pull/99) by @embear) 
+- added: typeId filtering (option `-tf`)
+  ([Pull Request #72](https://github.com/pe-st/garmin-connect-export/pull/72) by @joetimmerman) 
+
+
+## 4.2.0 - 2023-10-08
+
+- fixed: Use [garth](https://github.com/matin/garth) for OAuth to fix #95
+  [Did not find the display name in the profile page](https://github.com/pe-st/garmin-connect-export/issues/95) 
+  ([Pull Request #96](https://github.com/pe-st/garmin-connect-export/pull/96) by @SimonBaars with @geraudloup and @app4g)
+- added: date filter flags `--start_date` and `--end_date`
+  ([Pull Request #73](https://github.com/pe-st/garmin-connect-export/pull/73) by @bxsx)
+
+
+## 4.1.0 - 2023-07-22
+
+- changed: updated the list of parent activities (`PARENT_TYPE_ID`) to the new set Garmin is now using
+- changed: minimum Python version is now 3.8 (as Python 3.7 had its end-of-life on 2023-06-27)
+
+
+## 4.0.0 - 2022-10-06
+
+- added: new option `--logpath` (BREAKING change, you might need `--logpath=.` for the old behaviour)
+  ([Pull Request #74](https://github.com/pe-st/garmin-connect-export/pull/74) by @cristian5th and @bxsx)
+- removed: Python 2 leftovers
+  ([Pull Request #73](https://github.com/pe-st/garmin-connect-export/pull/73) by @bxsx)
+- added: configurations for flake8, pylint and black (including the needed improvements of the code for them)
+- changed: GitHub Actions now execute also flake8, pylint and black tasks
+
+
+## 3.3.0 - 2021-12-26
+
+- added: support for time spent in HR zones (feature request)
+  ([Issue #68](https://github.com/pe-st/garmin-connect-export/issues/68)
+- fixed: adapt display name parsing because of changed Garmin Connect behaviour
+  ([Pull Request #69](https://github.com/pe-st/garmin-connect-export/pull/69) by @hannesweisbach)
+- added: GitHub Action to execute the tests automatically
+
+
+## 3.2.1 - 2021-08-15
+
+- fixed: make the display name parsing work also for email addresses
+  ([Issue #65](https://github.com/pe-st/garmin-connect-export/issues/65)
+
+
+## 3.2.0 - 2021-07-18
+
+- changed: [Python 2.x is not supported anymore](https://github.com/pe-st/garmin-connect-export/issues/64)
+- changed: the `--verbose` option now also saves some intermediate responses from Garmin
+- changed: Improve logging for HTTP connection requests
+- fixed: handle the case where an original file has a different extension than `.fit`
+  ([Pull Request #61](https://github.com/pe-st/garmin-connect-export/pull/61) by @cristian5th)
+- fixed: don't write a record to the CSV file for already downloaded activities
+  ([Issue #34](https://github.com/pe-st/garmin-connect-export/issues/34),
+  [Pull Request #62](https://github.com/pe-st/garmin-connect-export/pull/62) by @cristian5th)
+
+
+## 3.1.0 - 2021-06-03
+
+- added: export of the parts of multi-sport activities
+- added: `--exclude` option to exclude activities from the download
+  ([Pull Request #58](https://github.com/pe-st/garmin-connect-export/pull/58) by @chs8691)
+
+
+## 3.0.3 - 2021-02-24
+
+- fixed: `HTTP Error 402: Payment Required` (started appearing 2021-02-23)
+  ([Pull Request #55](https://github.com/pe-st/garmin-connect-export/pull/55) by @reto)
+- changed: [detached from kjkjava's repo](https://github.com/pe-st/garmin-connect-export/issues/53)
+
+  
 ## 3.0.2 - 2020-11-15
 
 - fixed: unzipped filename was changed by Garmin, breaking redownload check (issue #48)

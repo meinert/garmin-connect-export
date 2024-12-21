@@ -8,15 +8,38 @@ A hearty welcome and thank you! There are many ways you can contribute:
 - Setting up an automated toolchain with mock endpoints for the HTTP calls for easier testing
 - Improve our examples, tutorials, and documentation.
 
-## Python 2 vs 3
+## Python Versions
 
-At the time of this writing (2020-04) Python 2 has passed its [sunset](https://python3statement.org/).
-But as the target audience of this script are not necessarily Python aficionados, it should be as easy
-to use as possible: clone the repo or download/extract the zip and then start using it.
+### Python 2 vs 3
 
-This implies that the script should work also with Python 2.7 for some time to come,
-e.g. the current macOS Catalina ships with Python 2.7.16 and the current Raspberry Pi OS (Raspian Buster)
-comes with Python 2.7.16 as well.
+At the time of this writing (2021-07) Python 2 has long passed its [sunset](https://python3statement.org/).
+And the effort to still support Python 2 has become too big (see https://github.com/pe-st/garmin-connect-export/issues/64);
+the script now uses features from Python 3 which Python 2 doesn't understand,
+so if you try to run the script with Python 2 you will get complaints about
+invalid syntax or other similar error messages.
+
+### Python 3.x Versions
+
+The script should be usable for a wide range of users and Python versions.
+
+For that reason the script should be compatible with the oldest still [supported
+Python version](https://devguide.python.org/versions/). At the time of this writing
+(December 2023) this is Python 3.9, whose end-of-life is currently scheduled for October 2025.
+
+Due to the latest version of the [garth](https://github.com/matin/garth) library requiring 3.10+,
+3.9 is not supported anymore (if you really only have 3.9 you can edit `requirements.txt` to use garth 0.4.x).
+
+The Github Actions (see `github/workflows/python-app.yml`) thus run all steps twice,
+once with the oldest supported Python version, and once with the newest released version.
+
+### Updating the minimum Python version
+
+- bump at least the minor version in `gcexport.py` : `SCRIPT_VERSION`
+- `gcexport.py` : `MINIMUM_PYTHON_VERSION`
+- `.github/workflows/python-app.yml` : `jobs.build.strategy.matrix.version`
+- the paragraph just above
+- `README.md` : near the top
+- `CHANGELOG.md` : mention it
 
 ## Getting started
 
@@ -27,10 +50,11 @@ is a detailed help source on getting involved with development on GitHub.
 
 ### Testing
 
-There is a small set of unit test, using [pytest](https://docs.pytest.org/en/latest/)
+There is a small set of unit test, using [pytest](https://docs.pytest.org/en/latest/);
+these tests are executed automatically whenever a commit is pushed or when a pull request is updated.
 
 I found that the free [PyCharm Community](https://www.jetbrains.com/pycharm/download/) is well suited for running the
-tests, and it's very easy to switch between Python 2.7 and Python 3.x to make sure the tests run with both versions.
+tests.
 
 Unfortunately there are no mocks yet for simulating Garmin Connect during development, so for real tests you'll have to
 run the script against your own Garmin account.
@@ -72,3 +96,12 @@ Endpoints to get information about a specific activity:
 
 - The timezones provided are just the names (e.g. for Central European Time CET you can get either "Europe/Paris" or "(GMT+01:00) Central European Time"), but not the exact offset. Note that the "GMT+01:00" part of the name is hardcoded, so in summer (daylight savings time) Garmin Connect still uses +01:00 in the name even if the offset then is +02:00. To get the offset you need to calculate the difference between the startTimeLocal and the startTimeGMT.
 
+## Adapting to changes in Garmin Connect
+
+### Unknown parentType xxx
+
+Manually get hold of the content of `https://connect.garmin.com/activity-service/activity/activityTypes`,
+e.g. when logged into Garmin Connect in the browser, using the browser's developer tools. There is an example
+file (from July 2023) in `/json/activityTypes.json`.
+
+Find in this file the new parentType and add it to the definition of `PARENT_TYPE_ID` in `gcexport.py`

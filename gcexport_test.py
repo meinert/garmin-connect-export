@@ -6,12 +6,7 @@ py.test gcexport_test.py
 """
 
 from gcexport import *
-try:
-    ## for Python 2
-    from StringIO import StringIO
-except ImportError:
-    ## for Python 3
-    from io import StringIO
+from io import StringIO
 
 
 def test_pace_or_speed_raw_cycling():
@@ -21,7 +16,17 @@ def test_pace_or_speed_raw_cycling():
 
 def test_pace_or_speed_raw_running():
     # 3.33 m/s is 12 km/h is 5 min/km
-    assert pace_or_speed_raw(1, 4, 10.0/3) == 5.0
+    assert pace_or_speed_raw(1, 4, 10.0 / 3) == 5.0
+
+
+def test_pace_or_speed_formatted_cycling():
+    # 10 m/s is 36 km/h
+    assert pace_or_speed_formatted(2, 4, 10.0) == '36.0'
+
+
+def test_pace_or_speed_formatted_running():
+    # 3.33 m/s is 12 km/h is 5 min/km
+    assert pace_or_speed_formatted(1, 4, 10.0 / 3) == '05:00'
 
 
 def test_trunc6_more():
@@ -33,8 +38,38 @@ def test_trunc6_less():
 
 
 def test_offset_date_time():
-    assert offset_date_time("2018-03-08 12:23:22", "2018-03-08 11:23:22") == datetime(2018, 3, 8, 12, 23, 22, 0, FixedOffset(60, "LCL"))
-    assert offset_date_time("2018-03-08 12:23:22", "2018-03-08 12:23:22") == datetime(2018, 3, 8, 12, 23, 22, 0, FixedOffset(0, "LCL"))
+    assert offset_date_time("2018-03-08 12:23:22", "2018-03-08 11:23:22") == datetime(
+        2018, 3, 8, 12, 23, 22, 0, FixedOffset(60, "LCL")
+    )
+    assert offset_date_time("2018-03-08 12:23:22", "2018-03-08 12:23:22") == datetime(
+        2018, 3, 8, 12, 23, 22, 0, FixedOffset(0, "LCL")
+    )
+
+
+def test_datetime_from_iso():
+    assert datetime_from_iso("2018-03-08 12:23:22") == datetime(2018, 3, 8, 12, 23, 22, 0)
+    assert datetime_from_iso("2018-03-08 12:23:22.0") == datetime(2018, 3, 8, 12, 23, 22, 0)
+    assert datetime_from_iso("2018-03-08T12:23:22") == datetime(2018, 3, 8, 12, 23, 22, 0)
+    assert datetime_from_iso("2018-03-08T12:23:22.0") == datetime(2018, 3, 8, 12, 23, 22, 0)
+
+
+def test_epoch_seconds_from_summary():
+    # activity with a beginTimestamp
+    with open('json/activity_2541953812_overview.json') as json_timestamp:
+        summary = json.load(json_timestamp)
+    assert summary['beginTimestamp'] == 1520508202000
+    assert epoch_seconds_from_summary(summary) == 1520508202
+
+    # activity with a startTimeLocal without fractions
+    with open('json/activity_multisport_overview.json') as json_timestamp:
+        summary = json.load(json_timestamp)
+    assert summary['beginTimestamp'] == None
+    assert summary['startTimeLocal'] == '2021-04-11 11:50:49'
+    assert epoch_seconds_from_summary(summary) == 1618134649
+
+    # activity with a startTimeLocal with fractions
+    summary['startTimeLocal'] = '2021-04-11 11:50:50.3'
+    assert epoch_seconds_from_summary(summary) == 1618134650
 
 
 def test_hhmmss_from_seconds():
@@ -86,19 +121,21 @@ def test_csv_write_record():
     extract['samples'] = None
     extract['device'] = "some device"
     extract['gear'] = "some gear"
+    extract['hrZones'] = HR_ZONES_EMPTY
+    extract['hrZones'][1] = json.loads('{ "secsInZone": 1689.269, "zoneLowBoundary": 138 }')
 
     csv_file = StringIO()
-    csv_filter = CsvFilter(csv_file, 'csv_header_default.properties')
+    csv_filter = CsvFilter(csv_file, 'csv_header_all.properties')
     csv_write_record(csv_filter, extract, activities[0], details, activity_type_name, event_type_name)
     expected = '"Biel 🏛 Pavillon"'
-    assert csv_file.getvalue()[69:69 + len(expected)] == expected
+    assert csv_file.getvalue()[69 : 69 + len(expected)] == expected
 
 
 def write_to_file_mock(filename, content, mode, file_time=None):
     pass
 
 
-def http_req_mock(url, post=None, headers=None):
+def http_req_mock_device(url, post=None, headers=None):
     with open('json/device_856399.json') as json_device:
         return json_device.read()
 
@@ -108,15 +145,33 @@ def test_extract_device():
 
     with open('json/activity_2541953812.json') as json_detail:
         details = json.load(json_detail)
-    assert u'fēnix 5 10.0.0.0' == extract_device({}, details, None, args, http_req_mock, write_to_file_mock)
+    assert u'fēnix 5 10.0.0.0' == extract_device({}, details, None, args, http_req_mock_device, write_to_file_mock)
 
     with open('json/activity_154105348_gpx_device_null.json') as json_detail:
         details = json.load(json_detail)
-    assert None == extract_device({}, details, None, args, http_req_mock, write_to_file_mock)
+    assert None == extract_device({}, details, None, args, http_req_mock_device, write_to_file_mock)
 
     with open('json/activity_995784118_gpx_device_0.json') as json_detail:
         details = json.load(json_detail)
-    assert None == extract_device({}, details, None, args, http_req_mock, write_to_file_mock)
+    assert None == extract_device({}, details, None, args, http_req_mock_device, write_to_file_mock)
+
+
+def http_req_mock_zones(url, post=None, headers=None):
+    with open('json/activity_2541953812_zones.json') as json_zones:
+        return json_zones.read()
+
+
+def test_load_zones():
+    args = parse_arguments([])
+
+    zones = load_zones('2541953812', None, args, http_req_mock_zones, write_to_file_mock)
+    assert 5 == len(zones)
+    assert 100 == zones[0]['zoneLowBoundary']
+    assert 138 == zones[1]['zoneLowBoundary']
+    assert 148 == zones[2]['zoneLowBoundary']
+    assert 168 == zones[3]['zoneLowBoundary']
+    assert 182 == zones[4]['zoneLowBoundary']
+    assert 2462.848 == zones[0]['secsInZone']
 
 
 def test_resolve_path():
@@ -126,3 +181,50 @@ def test_resolve_path():
     assert resolve_path('root', 'sub/{yyyy}', '2018-03-08 12:23:22') == 'root/sub/{yyyy}'
     assert resolve_path('root', 'sub/{YYYYMM}', '2018-03-08 12:23:22') == 'root/sub/{YYYYMM}'
     assert resolve_path('root', 'sub/all', '2018-03-08 12:23:22') == 'root/sub/all'
+
+
+mock_details_multi_counter = 0
+
+
+def http_req_mock_details_multi(url, post=None, headers=None):
+    global mock_details_multi_counter
+    mock_details_multi_counter += 1
+
+    if mock_details_multi_counter == 1:
+        with open('json/activity_multisport_detail.json') as json_stream:
+            return json_stream.read()
+    elif mock_details_multi_counter >= 2 & mock_details_multi_counter <= 6:
+        with open('json/activity_multisport_child.json') as json_stream:
+            json_string = json_stream.read()
+            activity_id = url.split('/')[-1]
+            return json_string.replace('6588349076', activity_id)
+    else:
+        raise Exception('mock_details_multi_counter has invalid value ' + str(mock_details_multi_counter))
+
+
+def test_fetch_multisports():
+    args = parse_arguments([])
+
+    with open('json/activities-list.json') as json_detail:
+        activity_summaries = json.load(json_detail)
+
+    # assert state before fetch_multisports
+    assert activity_summaries[0]['activityId'] == 6609987243
+    assert activity_summaries[1]['activityId'] == 6588349056
+    assert activity_summaries[2]['activityId'] == 6585943400
+
+    global mock_details_multi_counter
+    mock_details_multi_counter = 0
+    fetch_multisports(activity_summaries, http_req_mock_details_multi, args)
+
+    # the entries 0/1/2 from before are now 0/1/7
+    assert activity_summaries[0]['activityId'] == 6609987243
+    assert activity_summaries[1]['activityId'] == 6588349056
+    assert activity_summaries[7]['activityId'] == 6585943400
+
+    # at indexes 2..6 are now the five child activities
+    assert activity_summaries[2]['activityId'] == 6588349067
+    assert activity_summaries[3]['activityId'] == 6588349072
+    assert activity_summaries[4]['activityId'] == 6588349076
+    assert activity_summaries[5]['activityId'] == 6588349079
+    assert activity_summaries[6]['activityId'] == 6588349081
